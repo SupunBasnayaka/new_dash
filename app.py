@@ -1153,8 +1153,33 @@ def _ring_area(r):
     return sum(r[i][0] * r[i + 1][1] - r[i + 1][0] * r[i][1] for i in range(len(r) - 1)) / 2
 
 
+def _rdp(pts, eps):
+    """Douglas-Peucker line simplification (iterative). eps in degrees."""
+    if len(pts) < 3:
+        return pts
+    keep = [False] * len(pts)
+    keep[0] = keep[-1] = True
+    stack = [(0, len(pts) - 1)]
+    while stack:
+        a, b = stack.pop()
+        (x1, y1), (x2, y2) = pts[a], pts[b]
+        dx, dy = x2 - x1, y2 - y1
+        norm = (dx * dx + dy * dy) ** 0.5
+        dmax, idx = 0.0, -1
+        for i in range(a + 1, b):
+            x0, y0 = pts[i]
+            d = (abs(dy * x0 - dx * y0 + x2 * y1 - y2 * x1) / norm) if norm else ((x0 - x1) ** 2 + (y0 - y1) ** 2) ** 0.5
+            if d > dmax:
+                dmax, idx = d, i
+        if dmax > eps and idx != -1:
+            keep[idx] = True
+            stack += [(a, idx), (idx, b)]
+    return [p for p, k in zip(pts, keep) if k]
+
+
 def _fix_ring(ring, clockwise):
-    """Round to ~100 m, drop repeated points, and force the winding direction."""
+    """Round to ~100 m, drop repeated points, simplify (invisible at map size, much smaller
+    payload = faster redraw), and force the winding direction."""
     pts = []
     for x, y in ring:
         p = [round(x, 3), round(y, 3)]
@@ -1162,6 +1187,9 @@ def _fix_ring(ring, clockwise):
             pts.append(p)
     if pts[0] != pts[-1]:
         pts.append(pts[0])
+    simp = _rdp(pts, 0.003)
+    if len(simp) >= 4:
+        pts = simp
     if (_ring_area(pts) < 0) != clockwise:
         pts.reverse()
     return pts
@@ -1184,6 +1212,7 @@ def load_geojson(path):
     return geo
 
 
+@st.cache_data(show_spinner=False)
 def build_paddy_map(year):
     """Choropleth of total (Maha + Yala) production per district for one year, in thousand Mt."""
     geo = load_geojson(GEOJSON_PATH)
@@ -1227,7 +1256,9 @@ def build_paddy_map(year):
 def paddy_map_dialog():
     years = sorted((int(y) for y in complete_years), reverse=True)
     default_idx = years.index(2025) if 2025 in years else 0
-    year = st.selectbox("Year", years, index=default_idx, key="paddy_map_year")
+    # key changes on every open -> dropdown and map always start together on the default year
+    year = st.selectbox("Year", years, index=default_idx,
+                        key=f"paddy_map_year_{st.session_state.get('paddy_map_open_n', 0)}")
     st.caption(f"Total paddy production (Yala + Maha), {year} · thousand metric tonnes")
     fig, prod = build_paddy_map(year)
     st.plotly_chart(fig, width="stretch", config={"displaylogo": False, "displayModeBar": False,
@@ -1243,7 +1274,7 @@ def map_button():
     # Fragment: clicking only re-runs this block, not the whole dashboard, so the pop-up opens instantly
     with st.container(key="map_fab"):
         if st.button("Paddy production map", key="map_fab_btn", help="Sri Lanka paddy production map"):
-            st.session_state.pop("paddy_map_year", None)      # always open on the default year (2025)
+            st.session_state["paddy_map_open_n"] = st.session_state.get("paddy_map_open_n", 0) + 1   # new dropdown each open -> default year (2025)
             paddy_map_dialog()
 
 
