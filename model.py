@@ -18,7 +18,7 @@ IRR_TYPES = ["Major", "Minor", "Rainfed"]
 
 # Inputs the model learns from (production is the target).
 CAT_FEATURES = ["district", "province", "season", "irrigation_type"]
-NUM_FEATURES = ["year", "sown_extent_ha", "major_share", "minor_share", "rainfed_share"]
+NUM_FEATURES = ["sown_extent_ha", "major_share", "minor_share", "rainfed_share"]
 FEATURES = CAT_FEATURES + NUM_FEATURES
 TARGET = "production_mt"
 
@@ -27,7 +27,6 @@ FEATURE_GROUPS = {
     "district": ["district"],
     "province": ["province"],
     "season": ["season"],
-    "year": ["year"],
     "sown_extent_ha": ["sown_extent_ha"],
     "irrigation": ["irrigation_type", "major_share", "minor_share", "rainfed_share"],
 }
@@ -91,7 +90,8 @@ def load_training_data():
     df["minor_share"] = df["Minor"] / split_sum[df.index]
     df["rainfed_share"] = df["Rainfed"] / split_sum[df.index]
     df["irrigation_type"] = df[IRR_TYPES].idxmax(axis=1)
-    return df[FEATURES + [TARGET]].reset_index(drop=True)
+    # "year" is kept in the table only to split train / test by time; it is NOT a model input.
+    return df[["year"] + FEATURES + [TARGET]].reset_index(drop=True)
 
 
 def _build_pipeline():
