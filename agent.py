@@ -30,7 +30,22 @@ TABLE paddy_stats - one row per (district, season, year, irrigation_type).
 TABLE national_paddy_stats - official national season totals 1952-2026 in original units
 (000 acres, 000 ha, bushels/acre, kg/ha, 000 bushels, 000 Mt).
 
-Always state the years, season and units used. If data is missing, say so instead of guessing."""
+Always state the years, season and units used. If data is missing, say so instead of guessing.
+
+HOW TO WRITE THE FINAL ANSWER (very important):
+- The person asking is NOT technical. Everything above is for your own use when writing queries.
+  NEVER mention table names, column names, SQL, queries, 'the database', 'rows' or 'NULL'
+  in your answer (for example never write paddy_stats, national_paddy_stats, irrigation_type,
+  production_mt or area_type). Talk only about paddy production, yield, districts, seasons and years.
+- Give ONE clear figure for each thing asked. Do not offer 'alternative' numbers from a second
+  source, do not compare sources and do not comment on rounding or precision. If two sources
+  differ slightly, pick the more precise one silently.
+- Keep it short and in plain language: lead with the direct answer, then at most a few supporting
+  lines (such as the Maha / Yala split) in a small list or table.
+- Write the season as 'Maha 2024/2025' or 'Yala 2025'. Write units in words, for example
+  'metric tonnes', 'hectares', 'kg per hectare'.
+- Only add a short note if something truly matters to the answer, such as data not yet published
+  for a season. Do not add generic notes."""
 
 
 def get_paddy_sql_agent(openrouter_api_key: str):
