@@ -920,7 +920,7 @@ with tab3:
 with tab4:
     m = bundle["metrics"]
     brand_bar("🤖 ML Production Predictor",
-              f"Random Forest Regressor · Trained on {bundle['n_rows']:,} district-season records ({bundle['min_year']}–{bundle['max_year']}) · district, province, season, year, sown extent &amp; irrigation mix",
+              f"Random Forest Regressor · Trained on {bundle['n_rows']:,} district-season records ({bundle['min_year']}–{bundle['max_year']}) · district, province, season, sown extent &amp; irrigation mix",
               "AI POWERED")
 
     ml_left, ml_right = st.columns([3, 2], gap="large")
@@ -929,7 +929,7 @@ with tab4:
 
     with ml_left:
         st.markdown('<div class="section-header">🔮 Configure Prediction Parameters</div>', unsafe_allow_html=True)
-        st.markdown('<div class="section-sub">Choose the district and season, enter the sown extent under each irrigation type, then run the model</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-sub">Choose the district and season, enter the sown extent under each irrigation type, then run the model (year is not an input)</div>', unsafe_allow_html=True)
 
         # District / season sit outside the form so the irrigation defaults can follow them.
         sc1, sc2 = st.columns(2)
@@ -946,7 +946,6 @@ with tab4:
         default_ha = _last.groupby("irrigation_type")["sown_extent_ha"].sum().to_dict()
 
         with st.form("prediction_form"):
-            input_year = st.slider("📅 Target Year", bundle["max_year"] + 1, bundle["max_year"] + 5, bundle["max_year"] + 1)
             st.markdown("**💧 Sown extent by irrigation type (Ha)**")
             ic = st.columns(3)
             ha_in = {}
@@ -966,7 +965,7 @@ with tab4:
                 feats = irrigation_features(ha_in["Major"], ha_in["Minor"], ha_in["Rainfed"])
                 input_data = pd.DataFrame([{
                     "district": input_district, "province": prov_of[input_district],
-                    "season": input_season, "year": input_year, **feats,
+                    "season": input_season, **feats,
                 }])[bundle["features"]]
                 prediction = float(model.predict(input_data)[0])
                 hist = _win[(_win["district"] == input_district) & (_win["season"] == input_season)
@@ -985,7 +984,6 @@ with tab4:
                         <span class="info-pill">📍 {input_district}</span>
                         <span class="info-pill">🏛️ {prov_of[input_district]}</span>
                         <span class="info-pill">🌤️ {input_season}</span>
-                        <span class="info-pill">📅 {input_year}</span>
                         <span class="info-pill">🌾 {feats['sown_extent_ha']:,.0f} Ha</span>
                         <span class="info-pill">💧 Mostly {feats['irrigation_type']}</span>
                     </div>
@@ -993,14 +991,14 @@ with tab4:
                     <div style="margin-top:10px; font-size:0.75rem; color:#7d8590;">{hist_txt}</div>
                 </div>""", unsafe_allow_html=True)
         note(f"Accuracy on years the model never saw ({m['test_years']}): R² = {m['r2_test']:.2f}, "
-             f"average error ≈ {m['mae_test_mt']:,.0f} MT per district-season. Years beyond {bundle['max_year']} are treated "
-             "like the most recent period: the model does not extrapolate trends.")
+             f"average error ≈ {m['mae_test_mt']:,.0f} MT per district-season. "
+             "Year is not a model input: the prediction depends on district, season, sown extent and irrigation mix only.")
 
     with ml_right:
         st.markdown('<div class="section-header">📊 Feature Importance</div>', unsafe_allow_html=True)
         st.markdown('<div class="section-sub">Share of the model\'s decisions driven by each input</div>', unsafe_allow_html=True)
         label_map = {"sown_extent_ha": "Sown Extent", "district": "District", "province": "Province",
-                     "season": "Season", "year": "Year (era effect)", "irrigation": "Irrigation Type / Mix"}
+                     "season": "Season", "irrigation": "Irrigation Type / Mix"}
         fi_df = pd.DataFrame({
             "Feature": [label_map[k] for k in bundle["importance"]],
             "Importance": list(bundle["importance"].values()),
